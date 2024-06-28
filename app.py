@@ -4,7 +4,6 @@ from PIL import Image, ImageOps
 from tensorflow.keras.preprocessing.image import load_img,img_to_array
 from tensorflow.keras.models import load_model
 import numpy as np
-import keras
 st.title("Brain Tumor or Healthy Brain")
 st.header("Brain Tumor MRI Classifier")
 st.text("Upload a brain MRI Image for image classification as tumor or Healthy Brain")

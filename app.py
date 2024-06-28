@@ -1,53 +1,36 @@
 import streamlit as st
-import pandas as pd
+import tensorflow as tf
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from PIL import Image
+import io
+
+# Load the trained CNN model
+model = tf.keras.models.load_model('cnn_model.h5')
 
 st.title("Brain Tumor Prediction App")
 
-st.sidebar.header("Input Parameters")
+st.sidebar.header("Upload Brain MRI Image")
 
-def user_input_features():
-    radius_mean = st.sidebar.slider('Radius Mean', 0.0, 30.0, 15.0)
-    texture_mean = st.sidebar.slider('Texture Mean', 0.0, 30.0, 15.0)
-    perimeter_mean = st.sidebar.slider('Perimeter Mean', 0.0, 200.0, 100.0)
-    area_mean = st.sidebar.slider('Area Mean', 0.0, 2500.0, 1250.0)
-    smoothness_mean = st.sidebar.slider('Smoothness Mean', 0.0, 1.0, 0.5)
-    features = {
-        'radius_mean': radius_mean,
-        'texture_mean': texture_mean,
-        'perimeter_mean': perimeter_mean,
-        'area_mean': area_mean,
-        'smoothness_mean': smoothness_mean
-    }
-    return pd.DataFrame(features, index=[0])
+uploaded_file = st.sidebar.file_uploader("Upload an image file", type=["jpg", "png"])
 
-df = user_input_features()
-st.subheader('User Input parameters')
-st.write(df)
+if uploaded_file is not None:
+    # Load and preprocess the image
+    image = Image.open(uploaded_file).convert('L')  # Convert to grayscale
+    image = image.resize((28, 28))  # Resize to the same size as the training images
+    image = np.array(image)
+    image = image / 255.0  # Normalize
+    image = image.reshape(1, 28, 28, 1)  # Reshape for the model
 
-# Load example dataset
-# Replace with your actual dataset
-data = pd.read_csv('https://raw.githubusercontent.com/dataprofessor/data/master/breast_cancer.csv')
-X = data.drop('diagnosis', axis=1)
-y = data['diagnosis']
+    st.image(image, caption='Uploaded Image', use_column_width=True)
 
-# Split the data
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    # Predict using the CNN model
+    prediction = model.predict(image)
+    predicted_class = np.argmax(prediction, axis=1)
 
-# Build the model
-model = RandomForestClassifier(n_estimators=100, random_state=42)
-model.fit(X_train, y_train)
+    st.subheader('Prediction')
+    st.write('Tumor Detected' if predicted_class[0] == 1 else 'No Tumor')
 
-# Predict using the model
-prediction = model.predict(df)
-prediction_proba = model.predict_proba(df)
-
-st.subheader('Prediction')
-tumor_type = np.array(['Benign', 'Malignant'])
-st.write(tumor_type[prediction])
-
-st.subheader('Prediction Probability')
-st.write(prediction_proba)
+    st.subheader('Prediction Probability')
+    st.write(prediction)
+else:
+    st.write("Please upload an MRI image file.")
